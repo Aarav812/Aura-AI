@@ -1,0 +1,26 @@
+{
+  "//": "TEMPLATE — download the real google-services.json from Firebase Console and place it at app/google-services.json (git-ignored). Do NOT commit real values.",
+  "project_info": {
+    "project_number": "000000000000",
+    "project_id": "aura-ai-your-project",
+    "storage_bucket": "aura-ai-your-project.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:000000000000:android:abcdef1234567890",
+        "android_client_info": {
+          "package_name": "com.aura.ai"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        { "current_key": "YOUR_FIREBASE_ANDROID_API_KEY" }
+      ],
+      "services": {
+        "appinvite_service": { "other_platform_oauth_client": [] }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

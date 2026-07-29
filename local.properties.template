@@ -1,0 +1,18 @@
+# ============================================================
+#  Aura AI — local.properties template
+#  Copy this file to `local.properties` and fill in real values.
+#  `local.properties` is git-ignored and NEVER committed.
+# ============================================================
+
+# Android SDK location (Android Studio sets this automatically)
+sdk.dir=/Users/you/Library/Android/sdk
+
+# ---- NVIDIA NIM API ----------------------------------------
+# Get a key at https://build.nvidia.com/ -> "Get API Key"
+NVIDIA_API_KEY=nvapi-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+NVIDIA_BASE_URL=https://integrate.api.nvidia.com/
+
+# ---- Google Sign-In ----------------------------------------
+# Web client ID from Firebase Console -> Authentication -> Sign-in method
+# -> Google -> Web SDK configuration (Web client ID)
+GOOGLE_WEB_CLIENT_ID=xxxxxxxxxxxx-xxxxxxxxxxxxxxxxxxxx.apps.googleusercontent.com
