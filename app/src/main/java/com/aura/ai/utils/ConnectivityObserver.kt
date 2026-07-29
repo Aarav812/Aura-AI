@@ -22,10 +22,13 @@ class ConnectivityObserver @Inject constructor(
 
     val isOnline: Flow<Boolean> = callbackFlow {
         val callback = object : ConnectivityManager.NetworkCallback() {
-            override fun onAvailable(network: Network) { trySend(true) }
-            override fun onLost(network: Network) { trySend(false) }
+            override fun onAvailable(network: Network) { trySend(currentlyOnline()) }
+            override fun onLost(network: Network) {
+                // Another transport (for example Wi-Fi after cellular is lost) may still be active.
+                trySend(currentlyOnline())
+            }
             override fun onCapabilitiesChanged(network: Network, caps: NetworkCapabilities) {
-                trySend(caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED))
+                trySend(currentlyOnline())
             }
         }
         val request = NetworkRequest.Builder()
@@ -38,6 +41,7 @@ class ConnectivityObserver @Inject constructor(
 
     fun currentlyOnline(): Boolean {
         val caps = cm.getNetworkCapabilities(cm.activeNetwork) ?: return false
-        return caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+        return caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+            caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
     }
 }

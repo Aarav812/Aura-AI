@@ -4,8 +4,6 @@ import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideIntoContainer
-import androidx.compose.animation.slideOutOfContainer
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -58,13 +56,15 @@ fun AuraNavHost(startSignedIn: Boolean) {
             composable(Routes.HOME) {
                 HomeScreen(
                     onOpenChat = { navController.navigate(Routes.chat(it)) },
-                    onNewChat = { navController.navigate(Routes.chat("new")) },
+                    onNewChat = { prompt -> navController.navigate(Routes.chat("new", prompt)) },
                     onOpenSearch = { navController.navigate(Routes.SEARCH) },
                     onOpenProfile = { navController.navigate(Routes.PROFILE) }
                 )
             }
             composable(Routes.EXPLORE) {
-                ExploreScreen(onRunPrompt = { navController.navigate(Routes.chat("new?prompt=${it}")) })
+                ExploreScreen(onRunPrompt = { prompt ->
+                    navController.navigate(Routes.chat("new", prompt))
+                })
             }
             composable(Routes.LIBRARY) {
                 LibraryScreen(onOpenChat = { navController.navigate(Routes.chat(it)) })
@@ -97,8 +97,15 @@ fun AuraNavHost(startSignedIn: Boolean) {
                 VoiceScreen(onBack = { navController.popBackStack() })
             }
             composable(
-                route = "${Routes.CHAT}/{${Routes.CHAT_ARG}}",
-                arguments = listOf(navArgument(Routes.CHAT_ARG) { type = NavType.StringType })
+                route = "${Routes.CHAT}/{${Routes.CHAT_ARG}}?${Routes.PROMPT_ARG}={${Routes.PROMPT_ARG}}",
+                arguments = listOf(
+                    navArgument(Routes.CHAT_ARG) { type = NavType.StringType },
+                    navArgument(Routes.PROMPT_ARG) {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    }
+                )
             ) {
                 ChatScreen(
                     onBack = { navController.popBackStack() },

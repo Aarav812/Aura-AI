@@ -31,10 +31,10 @@ interface ChatDao {
     suspend fun getChat(chatId: String): ChatWithMessages?
 
     @Transaction
-    @Query("SELECT * FROM chats WHERE title LIKE '%' || :query || '%' ORDER BY updatedAt DESC")
+    @Query("SELECT * FROM chats WHERE title LIKE '%' || :query || '%' ESCAPE '\\' ORDER BY updatedAt DESC")
     fun searchChats(query: String): Flow<List<ChatWithMessages>>
 
-    @Query("SELECT * FROM messages WHERE text LIKE '%' || :query || '%' ORDER BY timestamp DESC LIMIT 100")
+    @Query("SELECT * FROM messages WHERE text LIKE '%' || :query || '%' ESCAPE '\\' ORDER BY timestamp DESC LIMIT 100")
     fun searchMessages(query: String): Flow<List<MessageEntity>>
 
     @Upsert
@@ -45,6 +45,9 @@ interface ChatDao {
 
     @Query("UPDATE chats SET title = :title, updatedAt = :now WHERE id = :chatId")
     suspend fun updateTitle(chatId: String, title: String, now: Long)
+
+    @Query("UPDATE chats SET model = :model, updatedAt = :now WHERE id = :chatId")
+    suspend fun updateModel(chatId: String, model: String, now: Long)
 
     @Query("UPDATE chats SET pinned = :pinned WHERE id = :chatId")
     suspend fun setPinned(chatId: String, pinned: Boolean)

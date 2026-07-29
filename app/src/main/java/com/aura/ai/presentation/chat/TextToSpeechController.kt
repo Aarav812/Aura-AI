@@ -7,9 +7,13 @@ import java.util.Locale
 /** Thin wrapper over Android TextToSpeech for message playback. */
 class TextToSpeechController(context: Context) {
     private var ready = false
-    private val tts = TextToSpeech(context) { status ->
-        ready = status == TextToSpeech.SUCCESS
-        if (ready) tts.language = Locale.getDefault()
+    private lateinit var tts: TextToSpeech
+
+    init {
+        tts = TextToSpeech(context.applicationContext) { status ->
+            ready = status == TextToSpeech.SUCCESS
+            if (ready) tts.language = Locale.getDefault()
+        }
     }
 
     fun speak(text: String) {

@@ -15,6 +15,7 @@ interface ChatRepository {
     suspend fun getChat(chatId: String): Chat?
     suspend fun upsertMessage(message: Message)
     suspend fun updateChatTitle(chatId: String, title: String)
+    suspend fun updateChatModel(chatId: String, model: String)
     suspend fun renameChat(chatId: String, title: String)
     suspend fun setPinned(chatId: String, pinned: Boolean)
     suspend fun setFavorite(chatId: String, favorite: Boolean)

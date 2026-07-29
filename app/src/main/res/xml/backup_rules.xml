@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <full-backup-content>
-    <exclude domain="sharedpref" path="aura_prefs.xml" />
+    <!-- Chats and preferences can contain private user data; keep them on-device. -->
+    <exclude domain="database" path="." />
+    <exclude domain="file" path="datastore/" />
+    <exclude domain="sharedpref" path="." />
 </full-backup-content>

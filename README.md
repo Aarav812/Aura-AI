@@ -49,10 +49,6 @@ All cross-layer results are wrapped in `Resource<T>` / `AppError`; nothing throw
 ### 2. Clone & open
 Open the project root in Android Studio and let Gradle sync.
 
-> ℹ️ The binary `gradle/wrapper/gradle-wrapper.jar` is not included (text-only repo).
-> Android Studio regenerates it on first sync automatically. From the CLI, run once:
-> `gradle wrapper --gradle-version 8.9` (needs a system Gradle), or use Android Studio.
-
 ### 3. Configure secrets — `local.properties`
 Copy the template and fill in your keys (this file is git-ignored):
 

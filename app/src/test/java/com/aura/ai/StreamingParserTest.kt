@@ -52,6 +52,32 @@ class StreamingParserTest {
     }
 
     @Test
+    fun `reports a stream that disconnects before completion`() = runTest {
+        val body = sse(
+            """data: {"choices":[{"delta":{"content":"Partial"}}]}"""
+        )
+        parser.parse(body).test {
+            assertEquals(ChatStreamEvent.Token("Partial"), awaitItem())
+            assertEquals(
+                ChatStreamEvent.Failed("The response stream ended unexpectedly."),
+                awaitItem()
+            )
+            awaitComplete()
+        }
+    }
+
+    @Test
+    fun `emits server errors instead of a successful empty completion`() = runTest {
+        val body = sse(
+            """data: {"error":{"message":"Model is unavailable"}}"""
+        )
+        parser.parse(body).test {
+            assertEquals(ChatStreamEvent.Failed("Model is unavailable"), awaitItem())
+            awaitComplete()
+        }
+    }
+
+    @Test
     fun `captures reasoning deltas`() = runTest {
         val body = sse(
             """data: {"choices":[{"delta":{"reasoning_content":"thinking"}}]}""",

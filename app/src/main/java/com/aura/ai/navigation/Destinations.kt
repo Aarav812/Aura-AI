@@ -1,5 +1,6 @@
 package com.aura.ai.navigation
 
+import android.net.Uri
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Explore
@@ -17,9 +18,14 @@ object Routes {
     const val SEARCH = "search"
     const val PROFILE = "profile"
     const val VOICE = "voice"
-    const val CHAT = "chat"                // chat/{chatId}
+    const val CHAT = "chat"                // chat/{chatId}?prompt={prompt}
     const val CHAT_ARG = "chatId"
-    fun chat(chatId: String) = "$CHAT/$chatId"
+    const val PROMPT_ARG = "prompt"
+
+    fun chat(chatId: String, prompt: String? = null): String = buildString {
+        append("$CHAT/${Uri.encode(chatId)}")
+        if (!prompt.isNullOrBlank()) append("?$PROMPT_ARG=${Uri.encode(prompt)}")
+    }
 }
 
 enum class TopLevelDestination(val route: String, val label: String, val icon: ImageVector) {

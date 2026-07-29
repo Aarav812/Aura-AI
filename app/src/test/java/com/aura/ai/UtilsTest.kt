@@ -25,11 +25,18 @@ class RateLimiterTest {
         assertFalse(limiter.tryAcquire(now))
     }
 
-    @Test fun `resets after window`() = runTest {
+    @Test fun `resets at exact window boundary`() = runTest {
         val limiter = RateLimiter()
         val start = 1_000_000L
         repeat(20) { limiter.tryAcquire(start) }
         assertFalse(limiter.tryAcquire(start))
-        assertTrue(limiter.tryAcquire(start + 61_000L))
+        assertTrue(limiter.tryAcquire(start + 60_000L))
+    }
+
+    @Test fun `retry delay rounds up to the next second`() = runTest {
+        val limiter = RateLimiter()
+        val start = 1_000_000L
+        repeat(20) { limiter.tryAcquire(start) }
+        assertEquals(60, limiter.retryAfterSeconds(start + 1))
     }
 }

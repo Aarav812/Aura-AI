@@ -43,6 +43,7 @@ import com.aura.ai.domain.model.Role
 fun MessageBubble(
     message: Message,
     isLast: Boolean,
+    canSpeak: Boolean,
     onCopy: () -> Unit,
     onRegenerate: () -> Unit,
     onSpeak: () -> Unit,
@@ -90,26 +91,30 @@ fun MessageBubble(
             }
         }
 
-        // Action row for completed assistant messages
-        if (!isUser && message.status == MessageStatus.COMPLETE) {
+        // Failed responses must remain retryable; completed ones expose the full action set.
+        if (!isUser && message.status in setOf(MessageStatus.COMPLETE, MessageStatus.ERROR)) {
             Row(
                 Modifier.padding(top = 4.dp, start = 4.dp),
                 horizontalArrangement = Arrangement.spacedBy(14.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                ActionIcon(Icons.Rounded.ContentCopy, "Copy", onCopy)
-                ActionIcon(Icons.Rounded.VolumeUp, "Read aloud", onSpeak)
+                if (message.status == MessageStatus.COMPLETE) {
+                    ActionIcon(Icons.Rounded.ContentCopy, "Copy", onCopy)
+                    if (canSpeak) ActionIcon(Icons.Rounded.VolumeUp, "Read aloud", onSpeak)
+                }
                 if (isLast) ActionIcon(Icons.Rounded.Refresh, "Regenerate", onRegenerate)
-                ActionIcon(
-                    Icons.Rounded.ThumbUp, "Like",
-                    { onFeedback(if (message.feedback == Feedback.LIKED) Feedback.NONE else Feedback.LIKED) },
-                    active = message.feedback == Feedback.LIKED
-                )
-                ActionIcon(
-                    Icons.Rounded.ThumbDown, "Dislike",
-                    { onFeedback(if (message.feedback == Feedback.DISLIKED) Feedback.NONE else Feedback.DISLIKED) },
-                    active = message.feedback == Feedback.DISLIKED
-                )
+                if (message.status == MessageStatus.COMPLETE) {
+                    ActionIcon(
+                        Icons.Rounded.ThumbUp, "Like",
+                        { onFeedback(if (message.feedback == Feedback.LIKED) Feedback.NONE else Feedback.LIKED) },
+                        active = message.feedback == Feedback.LIKED
+                    )
+                    ActionIcon(
+                        Icons.Rounded.ThumbDown, "Dislike",
+                        { onFeedback(if (message.feedback == Feedback.DISLIKED) Feedback.NONE else Feedback.DISLIKED) },
+                        active = message.feedback == Feedback.DISLIKED
+                    )
+                }
             }
         }
     }

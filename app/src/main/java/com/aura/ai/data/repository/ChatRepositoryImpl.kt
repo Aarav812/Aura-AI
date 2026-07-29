@@ -31,10 +31,10 @@ class ChatRepositoryImpl @Inject constructor(
         dao.observeChat(chatId).map { it?.toDomain() }
 
     override fun searchChats(query: String): Flow<List<Chat>> =
-        dao.searchChats(query).map { list -> list.map { it.toDomain() } }
+        dao.searchChats(query.escapeLikePattern()).map { list -> list.map { it.toDomain() } }
 
     override fun searchMessages(query: String): Flow<List<Message>> =
-        dao.searchMessages(query).map { list -> list.map { it.toDomain() } }
+        dao.searchMessages(query.escapeLikePattern()).map { list -> list.map { it.toDomain() } }
 
     override suspend fun createChat(model: String, title: String): Chat = withContext(dispatchers.io) {
         val now = System.currentTimeMillis()
@@ -59,6 +59,10 @@ class ChatRepositoryImpl @Inject constructor(
         dao.updateTitle(chatId, title, System.currentTimeMillis())
     }
 
+    override suspend fun updateChatModel(chatId: String, model: String) = withContext(dispatchers.io) {
+        dao.updateModel(chatId, model, System.currentTimeMillis())
+    }
+
     override suspend fun renameChat(chatId: String, title: String) = updateChatTitle(chatId, title)
 
     override suspend fun setPinned(chatId: String, pinned: Boolean) = withContext(dispatchers.io) {
@@ -81,14 +85,20 @@ class ChatRepositoryImpl @Inject constructor(
         val original = dao.getChat(chatId)?.toDomain() ?: return@withContext null
         val now = System.currentTimeMillis()
         val newId = UUID.randomUUID().toString()
+        val copiedMessages = original.messages.map { msg ->
+            msg.copy(id = UUID.randomUUID().toString(), chatId = newId)
+        }
         val copy = original.copy(
-            id = newId, title = "${original.title} (copy)",
-            createdAt = now, updatedAt = now, pinned = false
+            id = newId,
+            title = "${original.title} (copy)",
+            createdAt = now,
+            updatedAt = now,
+            pinned = false,
+            archived = false,
+            messages = copiedMessages
         )
         dao.upsertChat(copy.toEntity())
-        original.messages.forEach { msg ->
-            dao.upsertMessage(msg.copy(id = UUID.randomUUID().toString(), chatId = newId).toEntity())
-        }
+        copiedMessages.forEach { dao.upsertMessage(it.toEntity()) }
         copy
     }
 
@@ -99,4 +109,7 @@ class ChatRepositoryImpl @Inject constructor(
     override suspend fun deleteMessage(messageId: String) = withContext(dispatchers.io) {
         dao.deleteMessage(messageId)
     }
+
+    private fun String.escapeLikePattern(): String =
+        replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
 }

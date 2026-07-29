@@ -6,10 +6,12 @@ import android.content.Context
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -94,6 +96,7 @@ fun ChatScreen(
             AiComposer(
                 value = state.input,
                 isGenerating = state.isGenerating,
+                voiceEnabled = state.voiceEnabled,
                 onValueChange = viewModel::onInputChange,
                 onSend = viewModel::send,
                 onStop = viewModel::stopGenerating,
@@ -107,6 +110,17 @@ fun ChatScreen(
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
             AnimatedVisibility(!state.isOnline) { OfflineBanner() }
+            state.error?.let { error ->
+                Text(
+                    text = error,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.error.copy(alpha = 0.1f))
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                )
+            }
             if (state.messages.isEmpty()) {
                 Box(Modifier.fillMaxSize()) {
                     EmptyState(
@@ -126,6 +140,7 @@ fun ChatScreen(
                         MessageBubble(
                             message = msg,
                             isLast = msg.id == state.messages.lastOrNull()?.id,
+                            canSpeak = state.ttsEnabled,
                             onCopy = { copyToClipboard(context, msg.text) },
                             onRegenerate = viewModel::regenerate,
                             onSpeak = { tts.speak(msg.text) },

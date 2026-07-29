@@ -18,7 +18,7 @@ class RateLimiter @Inject constructor() {
 
     /** @return true if allowed, false if the caller should back off. */
     suspend fun tryAcquire(now: Long = System.currentTimeMillis()): Boolean = mutex.withLock {
-        while (timestamps.isNotEmpty() && now - timestamps.first() > windowMs) {
+        while (timestamps.isNotEmpty() && now - timestamps.first() >= windowMs) {
             timestamps.removeFirst()
         }
         if (timestamps.size >= maxRequestsPerWindow) return@withLock false
@@ -28,6 +28,7 @@ class RateLimiter @Inject constructor() {
 
     suspend fun retryAfterSeconds(now: Long = System.currentTimeMillis()): Long = mutex.withLock {
         val oldest = timestamps.firstOrNull() ?: return@withLock 0
-        ((windowMs - (now - oldest)) / 1000).coerceAtLeast(1)
+        // Round up so the UI never tells the caller to retry before a slot expires.
+        ((windowMs - (now - oldest) + 999) / 1000).coerceAtLeast(1)
     }
 }

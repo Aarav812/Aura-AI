@@ -1,5 +1,10 @@
 package com.aura.ai.presentation.settings
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -20,7 +25,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.core.content.ContextCompat
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -40,6 +47,21 @@ fun SettingsScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val p = state.prefs
+    val context = LocalContext.current
+    val notificationPermission = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        viewModel.setDailyReminder(granted)
+    }
+    val updateDailyReminder: (Boolean) -> Unit = { enabled ->
+        when {
+            !enabled -> viewModel.setDailyReminder(false)
+            Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU -> viewModel.setDailyReminder(true)
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) ==
+                PackageManager.PERMISSION_GRANTED -> viewModel.setDailyReminder(true)
+            else -> notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
 
     LazyColumn(
         contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 24.dp, bottom = 120.dp),
@@ -108,7 +130,7 @@ fun SettingsScreen(
         } }
 
         item { SectionCard("Notifications") {
-            ToggleRow("Daily reminder", p.dailyReminderEnabled, viewModel::setDailyReminder)
+            ToggleRow("Daily reminder", p.dailyReminderEnabled, updateDailyReminder)
         } }
 
         item { SectionCard("About") {

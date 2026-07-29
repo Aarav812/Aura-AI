@@ -42,7 +42,7 @@ fun Chat.toEntity(): ChatEntity = ChatEntity(
 fun MessageEntity.toDomain(): Message = Message(
     id = id,
     chatId = chatId,
-    role = Role.valueOf(role),
+    role = runCatching { Role.valueOf(role) }.getOrDefault(Role.USER),
     text = text,
     markdown = markdown,
     images = runCatching { json.decodeFromString(ListSerializer(String.serializer()), images) }.getOrDefault(emptyList()),
@@ -51,9 +51,9 @@ fun MessageEntity.toDomain(): Message = Message(
         json.decodeFromString(ListSerializer(AttachmentDto.serializer()), attachments)
             .map { Attachment(it.id, AttachmentType.valueOf(it.type), it.uri, it.name, it.sizeBytes) }
     }.getOrDefault(emptyList()),
-    status = MessageStatus.valueOf(status),
+    status = runCatching { MessageStatus.valueOf(status) }.getOrDefault(MessageStatus.COMPLETE),
     tokenCount = tokenCount,
-    feedback = Feedback.valueOf(feedback),
+    feedback = runCatching { Feedback.valueOf(feedback) }.getOrDefault(Feedback.NONE),
     reasoning = reasoning
 )
 

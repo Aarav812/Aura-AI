@@ -6,6 +6,7 @@ import androidx.credentials.GetCredentialRequest
 import com.aura.ai.BuildConfig
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
+import kotlinx.coroutines.CancellationException
 
 /**
  * Wraps the Credential Manager Google Sign-In flow.
@@ -33,7 +34,9 @@ class GoogleSignInClient(private val context: Context) {
             ) {
                 GoogleIdTokenCredential.createFrom(credential.data).idToken
             } else null
-        } catch (e: Exception) {
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (_: Exception) {
             null
         }
     }

@@ -65,7 +65,7 @@ private val quickActions = listOf(
 @Composable
 fun HomeScreen(
     onOpenChat: (String) -> Unit,
-    onNewChat: () -> Unit,
+    onNewChat: (String?) -> Unit,
     onOpenSearch: () -> Unit,
     onOpenProfile: () -> Unit,
     viewModel: HomeViewModel = hiltViewModel()
@@ -76,7 +76,7 @@ fun HomeScreen(
         containerColor = MaterialTheme.colorScheme.background,
         floatingActionButton = {
             ExtendedFloatingActionButton(
-                onClick = onNewChat,
+                onClick = { onNewChat(null) },
                 containerColor = Color.Transparent,
                 modifier = Modifier
                     .clip(RoundedCornerShape(20.dp))
@@ -112,7 +112,7 @@ fun HomeScreen(
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         quickActions.forEach { qa ->
-                            AuraChip(label = qa.label, emoji = qa.emoji) { onNewChat() }
+                            AuraChip(label = qa.label, emoji = qa.emoji) { onNewChat(qa.prompt) }
                         }
                     }
                 }

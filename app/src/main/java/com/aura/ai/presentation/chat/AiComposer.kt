@@ -42,6 +42,7 @@ import com.aura.ai.core.ui.theme.GradientStart
 fun AiComposer(
     value: String,
     isGenerating: Boolean,
+    voiceEnabled: Boolean,
     onValueChange: (String) -> Unit,
     onSend: () -> Unit,
     onStop: () -> Unit,
@@ -76,7 +77,7 @@ fun AiComposer(
             ComposerIcon(Icons.Rounded.Image, "Gallery", onGallery)
             ComposerIcon(Icons.Rounded.Camera, "Camera", onCamera)
             ComposerIcon(Icons.Rounded.AttachFile, "Files", onFiles)
-            ComposerIcon(Icons.Rounded.GraphicEq, "Voice mode", onVoiceMode)
+            if (voiceEnabled) ComposerIcon(Icons.Rounded.GraphicEq, "Voice mode", onVoiceMode)
             Box(Modifier.weight(1f))
             if (value.isNotEmpty()) {
                 Text("${value.length}", style = MaterialTheme.typography.labelSmall,
@@ -85,9 +86,9 @@ fun AiComposer(
             }
             if (isGenerating) {
                 SendFab(Icons.Rounded.Stop, onStop)
-            } else if (value.isBlank()) {
+            } else if (value.isBlank() && voiceEnabled) {
                 ComposerIcon(Icons.Rounded.Mic, "Speak", onMic)
-            } else {
+            } else if (value.isNotBlank()) {
                 SendFab(Icons.Rounded.Send, onSend)
             }
         }

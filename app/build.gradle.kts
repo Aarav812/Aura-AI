@@ -38,6 +38,7 @@ android {
         buildConfigField("String", "NVIDIA_API_KEY", "\"${secret("NVIDIA_API_KEY")}\"")
         buildConfigField("String", "NVIDIA_BASE_URL", "\"${secret("NVIDIA_BASE_URL", "https://integrate.api.nvidia.com/")}\"")
         buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"${secret("GOOGLE_WEB_CLIENT_ID")}\"")
+        buildConfigField("boolean", "FIREBASE_CONFIGURED", rootProject.file("app/google-services.json").exists().toString())
     }
 
     buildTypes {
@@ -157,11 +158,12 @@ dependencies {
 
     // Instrumented tests
     androidTestImplementation(libs.androidx.junit)
+    androidTestImplementation(libs.androidx.test.runner)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.ui.test.junit4)
     androidTestImplementation(libs.mockk.android)
-    androidTestImplementation(libs.hilt.android)
+    androidTestImplementation(libs.hilt.android.testing)
     kspAndroidTest(libs.hilt.compiler)
     debugImplementation(libs.androidx.ui.test.manifest)
 }

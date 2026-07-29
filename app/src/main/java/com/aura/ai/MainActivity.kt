@@ -30,7 +30,8 @@ class MainActivity : ComponentActivity() {
             val state by viewModel.uiState.collectAsStateWithLifecycle()
             AuraTheme(
                 themeMode = state.preferences.themeMode,
-                dynamicColor = state.preferences.dynamicColor
+                dynamicColor = state.preferences.dynamicColor,
+                highContrast = state.preferences.highContrast
             ) {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     if (!state.isLoading) {

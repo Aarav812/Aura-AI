@@ -5,6 +5,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
@@ -15,11 +16,16 @@ import com.aura.ai.domain.model.ThemeMode
 import com.aura.ai.domain.repository.PreferencesRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
+import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Singleton
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "aura_prefs")
+
+private inline fun <reified T : Enum<T>> enumOrDefault(value: String?, default: T): T =
+    value?.let { stored -> enumValues<T>().firstOrNull { it.name == stored } } ?: default
 
 @Singleton
 class PreferencesRepositoryImpl @Inject constructor(
@@ -48,35 +54,39 @@ class PreferencesRepositoryImpl @Inject constructor(
         val FONT_SCALE = floatPreferencesKey("font_scale")
     }
 
-    override val preferences: Flow<AppPreferences> = context.dataStore.data.map { p ->
-        val defaults = AppPreferences()
-        AppPreferences(
-            themeMode = p[Keys.THEME]?.let { ThemeMode.valueOf(it) } ?: defaults.themeMode,
-            dynamicColor = p[Keys.DYNAMIC] ?: defaults.dynamicColor,
-            language = p[Keys.LANGUAGE] ?: defaults.language,
-            defaultModel = p[Keys.MODEL] ?: defaults.defaultModel,
-            temperature = p[Keys.TEMPERATURE] ?: defaults.temperature,
-            topP = p[Keys.TOP_P] ?: defaults.topP,
-            maxTokens = p[Keys.MAX_TOKENS] ?: defaults.maxTokens,
-            streaming = p[Keys.STREAMING] ?: defaults.streaming,
-            memoryEnabled = p[Keys.MEMORY] ?: defaults.memoryEnabled,
-            reasoningEnabled = p[Keys.REASONING] ?: defaults.reasoningEnabled,
-            internetEnabled = p[Keys.INTERNET] ?: defaults.internetEnabled,
-            voiceEnabled = p[Keys.VOICE] ?: defaults.voiceEnabled,
-            ttsEnabled = p[Keys.TTS] ?: defaults.ttsEnabled,
-            responseStyle = p[Keys.STYLE]?.let { ResponseStyle.valueOf(it) } ?: defaults.responseStyle,
-            systemPrompt = p[Keys.SYSTEM_PROMPT] ?: defaults.systemPrompt,
-            onboardingComplete = p[Keys.ONBOARDING] ?: defaults.onboardingComplete,
-            dailyReminderEnabled = p[Keys.DAILY_REMINDER] ?: defaults.dailyReminderEnabled,
-            highContrast = p[Keys.HIGH_CONTRAST] ?: defaults.highContrast,
-            fontScale = p[Keys.FONT_SCALE] ?: defaults.fontScale
-        )
-    }
+    override val preferences: Flow<AppPreferences> = context.dataStore.data
+        .catch { error ->
+            if (error is IOException) emit(emptyPreferences()) else throw error
+        }
+        .map { p ->
+            val defaults = AppPreferences()
+            AppPreferences(
+                themeMode = enumOrDefault(p[Keys.THEME], defaults.themeMode),
+                dynamicColor = p[Keys.DYNAMIC] ?: defaults.dynamicColor,
+                language = p[Keys.LANGUAGE] ?: defaults.language,
+                defaultModel = p[Keys.MODEL] ?: defaults.defaultModel,
+                temperature = p[Keys.TEMPERATURE] ?: defaults.temperature,
+                topP = p[Keys.TOP_P] ?: defaults.topP,
+                maxTokens = p[Keys.MAX_TOKENS] ?: defaults.maxTokens,
+                streaming = p[Keys.STREAMING] ?: defaults.streaming,
+                memoryEnabled = p[Keys.MEMORY] ?: defaults.memoryEnabled,
+                reasoningEnabled = p[Keys.REASONING] ?: defaults.reasoningEnabled,
+                internetEnabled = p[Keys.INTERNET] ?: defaults.internetEnabled,
+                voiceEnabled = p[Keys.VOICE] ?: defaults.voiceEnabled,
+                ttsEnabled = p[Keys.TTS] ?: defaults.ttsEnabled,
+                responseStyle = enumOrDefault(p[Keys.STYLE], defaults.responseStyle),
+                systemPrompt = p[Keys.SYSTEM_PROMPT] ?: defaults.systemPrompt,
+                onboardingComplete = p[Keys.ONBOARDING] ?: defaults.onboardingComplete,
+                dailyReminderEnabled = p[Keys.DAILY_REMINDER] ?: defaults.dailyReminderEnabled,
+                highContrast = p[Keys.HIGH_CONTRAST] ?: defaults.highContrast,
+                fontScale = p[Keys.FONT_SCALE] ?: defaults.fontScale
+            )
+        }
 
     override suspend fun update(transform: (AppPreferences) -> AppPreferences) {
         context.dataStore.edit { p ->
             val current = AppPreferences(
-                themeMode = p[Keys.THEME]?.let { ThemeMode.valueOf(it) } ?: ThemeMode.SYSTEM,
+                themeMode = enumOrDefault(p[Keys.THEME], ThemeMode.SYSTEM),
                 dynamicColor = p[Keys.DYNAMIC] ?: true,
                 language = p[Keys.LANGUAGE] ?: "en",
                 defaultModel = p[Keys.MODEL] ?: AppPreferences().defaultModel,
@@ -89,7 +99,7 @@ class PreferencesRepositoryImpl @Inject constructor(
                 internetEnabled = p[Keys.INTERNET] ?: false,
                 voiceEnabled = p[Keys.VOICE] ?: true,
                 ttsEnabled = p[Keys.TTS] ?: true,
-                responseStyle = p[Keys.STYLE]?.let { ResponseStyle.valueOf(it) } ?: ResponseStyle.BALANCED,
+                responseStyle = enumOrDefault(p[Keys.STYLE], ResponseStyle.BALANCED),
                 systemPrompt = p[Keys.SYSTEM_PROMPT] ?: "",
                 onboardingComplete = p[Keys.ONBOARDING] ?: false,
                 dailyReminderEnabled = p[Keys.DAILY_REMINDER] ?: false,

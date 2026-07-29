@@ -17,7 +17,9 @@ import com.aura.ai.domain.usecase.GenerateTitleUseCase
 import com.aura.ai.navigation.Routes
 import com.aura.ai.utils.ConnectivityObserver
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -25,6 +27,7 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.UUID
 import javax.inject.Inject
 
@@ -36,6 +39,8 @@ data class ChatUiState(
     val model: AiModel = AiModel.default,
     val isGenerating: Boolean = false,
     val isOnline: Boolean = true,
+    val voiceEnabled: Boolean = true,
+    val ttsEnabled: Boolean = true,
     val error: String? = null,
     val pendingImages: List<String> = emptyList()
 )
@@ -51,18 +56,27 @@ class ChatViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val argChatId: String = savedStateHandle[Routes.CHAT_ARG] ?: "new"
+    private val initialPrompt: String = savedStateHandle[Routes.PROMPT_ARG] ?: ""
 
-    private val _state = MutableStateFlow(ChatUiState())
+    private val _state = MutableStateFlow(ChatUiState(input = initialPrompt))
     val state = _state.asStateFlow()
 
     private var prefs: AppPreferences = AppPreferences()
     private var streamJob: Job? = null
 
     init {
-        preferencesRepository.preferences.onEach {
-            prefs = it
-            if (_state.value.chatId == null) {
-                _state.update { s -> s.copy(model = AiModel.fromId(it.defaultModel)) }
+        preferencesRepository.preferences.onEach { preferences ->
+            prefs = preferences
+            _state.update { current ->
+                current.copy(
+                    model = if (current.chatId == null) {
+                        AiModel.fromId(preferences.defaultModel)
+                    } else {
+                        current.model
+                    },
+                    voiceEnabled = preferences.voiceEnabled,
+                    ttsEnabled = preferences.ttsEnabled
+                )
             }
         }.launchIn(viewModelScope)
 
@@ -70,7 +84,7 @@ class ChatViewModel @Inject constructor(
             _state.update { it.copy(isOnline = online) }
         }.launchIn(viewModelScope)
 
-        if (argChatId != "new" && !argChatId.startsWith("new?")) observeChat(argChatId)
+        if (argChatId != "new") observeChat(argChatId)
     }
 
     private fun observeChat(chatId: String) {
@@ -89,27 +103,47 @@ class ChatViewModel @Inject constructor(
         }.launchIn(viewModelScope)
     }
 
-    fun onInputChange(v: String) = _state.update { it.copy(input = v) }
+    fun onInputChange(v: String) = _state.update { it.copy(input = v, error = null) }
     fun addImage(uri: String) = _state.update { it.copy(pendingImages = it.pendingImages + uri) }
-    fun selectModel(model: AiModel) = viewModelScope.launch {
-        preferencesRepository.update { it.copy(defaultModel = model.id) }
+    fun selectModel(model: AiModel) {
+        _state.update { it.copy(model = model) }
+        viewModelScope.launch {
+            preferencesRepository.update { it.copy(defaultModel = model.id) }
+            _state.value.chatId?.let { chatRepository.updateChatModel(it, model.id) }
+        }
     }
 
     fun send() {
         val text = _state.value.input.trim()
         if (text.isBlank() || _state.value.isGenerating) return
+        if (!_state.value.isOnline) {
+            _state.update { it.copy(error = "You're offline. Reconnect to send a message.") }
+            return
+        }
         val images = _state.value.pendingImages
         val isFirst = _state.value.messages.none { it.role == Role.USER }
         _state.update { it.copy(input = "", pendingImages = emptyList()) }
 
         viewModelScope.launch {
-            val chatId = ensureChat()
-            val userMsg = Message(
-                id = UUID.randomUUID().toString(), chatId = chatId, role = Role.USER,
-                text = text, images = images, status = MessageStatus.COMPLETE
-            )
-            chatRepository.upsertMessage(userMsg)
-            runStream(chatId, isFirst, text)
+            try {
+                val chatId = ensureChat()
+                val userMsg = Message(
+                    id = UUID.randomUUID().toString(), chatId = chatId, role = Role.USER,
+                    text = text, images = images, status = MessageStatus.COMPLETE
+                )
+                chatRepository.upsertMessage(userMsg)
+                runStream(chatId, isFirst, text)
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                _state.update { current ->
+                    current.copy(
+                        input = current.input.ifBlank { text },
+                        pendingImages = if (current.pendingImages.isEmpty()) images else current.pendingImages,
+                        error = error.message ?: "Could not save the message"
+                    )
+                }
+            }
         }
     }
 
@@ -136,46 +170,73 @@ class ChatViewModel @Inject constructor(
         _state.update { it.copy(isGenerating = true, error = null) }
         streamJob?.cancel()
         streamJob = viewModelScope.launch {
-            val history = chatRepository.getChat(chatId)?.messages.orEmpty()
-                .filter { it.role != Role.ASSISTANT || it.text.isNotBlank() }
-
             val assistantId = UUID.randomUUID().toString()
-            chatRepository.upsertMessage(
-                Message(assistantId, chatId, Role.ASSISTANT, "", status = MessageStatus.STREAMING)
-            )
-
             val builder = StringBuilder()
             val reasoning = StringBuilder()
-            val stream: Flow<ChatStreamEvent> =
-                aiRepository.streamCompletion(_state.value.model.id, history, prefs)
+            var placeholderCreated = false
 
-            stream.collect { event ->
-                when (event) {
-                    is ChatStreamEvent.Token -> {
-                        builder.append(event.delta)
-                        persist(chatId, assistantId, builder.toString(), reasoning.toString(), MessageStatus.STREAMING)
-                    }
-                    is ChatStreamEvent.Reasoning -> reasoning.append(event.delta)
-                    is ChatStreamEvent.Completed -> {
-                        persist(chatId, assistantId, event.fullText.ifBlank { builder.toString() },
-                            event.reasoning ?: reasoning.toString(), MessageStatus.COMPLETE, event.tokenCount)
-                        _state.update { it.copy(isGenerating = false) }
-                        if (isFirstMessage && firstText != null) {
-                            generateTitle(chatId, _state.value.model.id, firstText)
+            try {
+                val history = chatRepository.getChat(chatId)?.messages.orEmpty()
+                    .filter { it.role != Role.ASSISTANT || it.text.isNotBlank() }
+                chatRepository.upsertMessage(
+                    Message(assistantId, chatId, Role.ASSISTANT, "", status = MessageStatus.STREAMING)
+                )
+                placeholderCreated = true
+
+                val stream: Flow<ChatStreamEvent> =
+                    aiRepository.streamCompletion(_state.value.model.id, history, prefs)
+                stream.collect { event ->
+                    when (event) {
+                        is ChatStreamEvent.Token -> {
+                            builder.append(event.delta)
+                            persist(chatId, assistantId, builder.toString(), reasoning.toString(), MessageStatus.STREAMING)
+                        }
+                        is ChatStreamEvent.Reasoning -> reasoning.append(event.delta)
+                        is ChatStreamEvent.Completed -> {
+                            persist(chatId, assistantId, event.fullText.ifBlank { builder.toString() },
+                                event.reasoning ?: reasoning.toString(), MessageStatus.COMPLETE, event.tokenCount)
+                            if (isFirstMessage && firstText != null) {
+                                generateTitle(chatId, _state.value.model.id, firstText)
+                            }
+                        }
+                        is ChatStreamEvent.Failed -> {
+                            persist(chatId, assistantId, builder.toString(), reasoning.toString(), MessageStatus.ERROR)
+                            _state.update { it.copy(error = event.message) }
                         }
                     }
-                    is ChatStreamEvent.Failed -> {
-                        persist(chatId, assistantId, builder.toString(), reasoning.toString(), MessageStatus.ERROR)
-                        _state.update { it.copy(isGenerating = false, error = event.message) }
+                }
+            } catch (cancelled: CancellationException) {
+                // Do not leave a permanently "streaming" placeholder after the user taps Stop.
+                if (placeholderCreated) {
+                    withContext(NonCancellable) {
+                        runCatching {
+                            if (builder.isBlank() && reasoning.isBlank()) {
+                                chatRepository.deleteMessage(assistantId)
+                            } else {
+                                persist(chatId, assistantId, builder.toString(), reasoning.toString(), MessageStatus.COMPLETE)
+                            }
+                        }
                     }
                 }
+                throw cancelled
+            } catch (error: Exception) {
+                if (placeholderCreated) {
+                    withContext(NonCancellable) {
+                        runCatching {
+                            persist(chatId, assistantId, builder.toString(), reasoning.toString(), MessageStatus.ERROR)
+                        }
+                    }
+                }
+                _state.update { it.copy(error = error.message ?: "Could not generate a response") }
+            } finally {
+                _state.update { it.copy(isGenerating = false) }
             }
         }
     }
 
     fun stopGenerating() {
+        // The stream's cancellation cleanup updates state after fixing the placeholder message.
         streamJob?.cancel()
-        _state.update { it.copy(isGenerating = false) }
     }
 
     fun setFeedback(messageId: String, feedback: Feedback) = viewModelScope.launch {
