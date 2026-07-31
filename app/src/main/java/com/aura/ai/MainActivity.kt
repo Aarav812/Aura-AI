@@ -34,7 +34,7 @@ class MainActivity : ComponentActivity() {
             ) {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     if (!state.isLoading) {
-                        AuraNavHost(startSignedIn = state.isSignedIn)
+                        AuraNavHost()
                     }
                 }
             }

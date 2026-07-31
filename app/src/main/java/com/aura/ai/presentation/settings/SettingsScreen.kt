@@ -9,9 +9,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.ChevronRight
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
@@ -26,7 +23,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.aura.ai.core.ui.components.AuraChip
 import com.aura.ai.core.ui.components.GlassCard
-import com.aura.ai.core.ui.components.GradientButton
 import com.aura.ai.core.ui.components.clickableNoRipple
 import com.aura.ai.domain.model.AiModel
 import com.aura.ai.domain.model.ResponseStyle
@@ -34,8 +30,6 @@ import com.aura.ai.domain.model.ThemeMode
 
 @Composable
 fun SettingsScreen(
-    onOpenProfile: () -> Unit,
-    onSignedOut: () -> Unit,
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -46,20 +40,6 @@ fun SettingsScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         item { Text("Settings", style = MaterialTheme.typography.displayLarge) }
-
-        item {
-            GlassCard(onClick = onOpenProfile, modifier = Modifier.fillMaxWidth()) {
-                Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f)) {
-                        Text(state.user?.name ?: "Profile", style = MaterialTheme.typography.titleMedium)
-                        Text(state.user?.email ?: "Manage your account",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
-                    }
-                    Icon(Icons.Rounded.ChevronRight, null)
-                }
-            }
-        }
 
         item { SectionCard("Appearance") {
             LabeledRow("Theme")
@@ -113,21 +93,10 @@ fun SettingsScreen(
 
         item { SectionCard("About") {
             LabeledRow("Aura AI v1.0.0")
-            Text("Powered by NVIDIA NIM · Firebase",
+            Text("Powered by NVIDIA NIM",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
         } }
-
-        item {
-            GradientButton("Sign Out", modifier = Modifier.fillMaxWidth()) {
-                viewModel.signOut(onSignedOut)
-            }
-        }
-        item {
-            Text("Delete account", color = MaterialTheme.colorScheme.error,
-                modifier = Modifier.fillMaxWidth().padding(8.dp)
-                    .clickableNoRipple { viewModel.deleteAccount(onSignedOut) })
-        }
     }
 }
 

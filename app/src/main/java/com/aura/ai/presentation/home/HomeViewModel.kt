@@ -4,8 +4,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.aura.ai.domain.model.AiModel
 import com.aura.ai.domain.model.Chat
-import com.aura.ai.domain.model.UserProfile
-import com.aura.ai.domain.repository.AuthRepository
 import com.aura.ai.domain.repository.ChatRepository
 import com.aura.ai.domain.repository.PreferencesRepository
 import com.aura.ai.utils.ConnectivityObserver
@@ -21,7 +19,6 @@ import javax.inject.Inject
 
 data class HomeUiState(
     val greeting: String = "Hello",
-    val user: UserProfile? = null,
     val pinnedChats: List<Chat> = emptyList(),
     val recentChats: List<Chat> = emptyList(),
     val selectedModel: AiModel = AiModel.default,
@@ -32,21 +29,18 @@ data class HomeUiState(
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val chatRepository: ChatRepository,
-    private val authRepository: AuthRepository,
     private val preferencesRepository: PreferencesRepository,
     connectivity: ConnectivityObserver
 ) : ViewModel() {
 
     val uiState: StateFlow<HomeUiState> = combine(
-        authRepository.currentUser,
         chatRepository.observePinnedChats(),
         chatRepository.observeChats(includeArchived = false),
         preferencesRepository.preferences,
         connectivity.isOnline
-    ) { user, pinned, all, prefs, online ->
+    ) { pinned, all, prefs, online ->
         HomeUiState(
             greeting = greeting(),
-            user = user,
             pinnedChats = pinned,
             recentChats = all.filterNot { it.pinned }.take(50),
             selectedModel = AiModel.fromId(prefs.defaultModel),

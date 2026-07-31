@@ -11,8 +11,3 @@ sdk.dir=/Users/you/Library/Android/sdk
 # Get a key at https://build.nvidia.com/ -> "Get API Key"
 NVIDIA_API_KEY=nvapi-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 NVIDIA_BASE_URL=https://integrate.api.nvidia.com/
-
-# ---- Google Sign-In ----------------------------------------
-# Web client ID from Firebase Console -> Authentication -> Sign-in method
-# -> Google -> Web SDK configuration (Web client ID)
-GOOGLE_WEB_CLIENT_ID=xxxxxxxxxxxx-xxxxxxxxxxxxxxxxxxxx.apps.googleusercontent.com

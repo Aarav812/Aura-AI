@@ -9,13 +9,11 @@ import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.ui.graphics.vector.ImageVector
 
 object Routes {
-    const val AUTH = "auth"
     const val HOME = "home"
     const val EXPLORE = "explore"
     const val LIBRARY = "library"
     const val SETTINGS = "settings"
     const val SEARCH = "search"
-    const val PROFILE = "profile"
     const val VOICE = "voice"
     const val CHAT = "chat"                // chat/{chatId}
     const val CHAT_ARG = "chatId"
