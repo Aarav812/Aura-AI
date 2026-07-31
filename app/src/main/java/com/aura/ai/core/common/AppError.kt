@@ -9,10 +9,9 @@ sealed class AppError(open val message: String, open val cause: Throwable? = nul
     data class Timeout(override val message: String = "The request timed out") : AppError(message)
     data class RateLimited(val retryAfterSeconds: Long? = null) :
         AppError("You're sending messages too quickly. Please slow down.")
-    data class Unauthorized(override val message: String = "Session expired. Please sign in again.") : AppError(message)
+    data class Unauthorized(override val message: String = "Invalid or missing API key. Check NVIDIA_API_KEY in local.properties.") : AppError(message)
     data class Server(val code: Int, override val message: String) : AppError(message)
     data class Api(override val message: String) : AppError(message)
-    data class Auth(override val message: String) : AppError(message)
     data class Cancelled(override val message: String = "Generation stopped") : AppError(message)
     data class Unknown(override val message: String = "Something went wrong", override val cause: Throwable? = null) :
         AppError(message, cause)

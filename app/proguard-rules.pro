@@ -15,9 +15,6 @@
 -dontwarn okio.**
 -keep class retrofit2.** { *; }
 
-# Firebase
--keep class com.google.firebase.** { *; }
-
 # Room
 -keep class * extends androidx.room.RoomDatabase
 -dontwarn androidx.room.paging.**

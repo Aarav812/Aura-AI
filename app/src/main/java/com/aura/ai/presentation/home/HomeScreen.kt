@@ -42,7 +42,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import coil.compose.AsyncImage
 import com.aura.ai.core.ui.components.AuraChip
 import com.aura.ai.core.ui.components.EmptyState
 import com.aura.ai.core.ui.components.OfflineBanner
@@ -67,7 +66,6 @@ fun HomeScreen(
     onOpenChat: (String) -> Unit,
     onNewChat: () -> Unit,
     onOpenSearch: () -> Unit,
-    onOpenProfile: () -> Unit,
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -95,12 +93,12 @@ fun HomeScreen(
                 contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 12.dp, bottom = 120.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                item { TopBar(state, onOpenSearch, onOpenProfile) }
+                item { TopBar(onOpenSearch) }
                 item {
                     Column {
                         Text(state.greeting + ",", style = MaterialTheme.typography.headlineMedium)
                         Text(
-                            state.user?.name ?: "there",
+                            "there",
                             style = MaterialTheme.typography.displayLarge,
                             color = MaterialTheme.colorScheme.primary
                         )
@@ -156,7 +154,7 @@ fun HomeScreen(
 }
 
 @Composable
-private fun TopBar(state: HomeUiState, onSearch: () -> Unit, onProfile: () -> Unit) {
+private fun TopBar(onSearch: () -> Unit) {
     Row(Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
         Box(
             Modifier.size(38.dp).clip(RoundedCornerShape(12.dp))
@@ -167,23 +165,6 @@ private fun TopBar(state: HomeUiState, onSearch: () -> Unit, onProfile: () -> Un
         Text("Aura AI", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
         Spacer(Modifier.weight(1f))
         Icon(Icons.Rounded.Search, "Search", modifier = Modifier.size(26.dp).clip(CircleShape).clickableNoRipple(onSearch))
-        Spacer(Modifier.size(14.dp))
-        val photo = state.user?.photoUrl
-        if (photo != null) {
-            AsyncImage(model = photo, contentDescription = "Profile",
-                modifier = Modifier.size(38.dp).clip(CircleShape).clickableNoRipple(onProfile))
-        } else {
-            Box(
-                Modifier.size(38.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary)
-                    .clickableNoRipple(onProfile),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    (state.user?.name?.firstOrNull() ?: 'A').uppercase(),
-                    color = Color.White, style = MaterialTheme.typography.titleMedium
-                )
-            }
-        }
     }
 }
 

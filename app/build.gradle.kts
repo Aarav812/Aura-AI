@@ -7,9 +7,6 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
-    // Enable after adding google-services.json:
-    // alias(libs.plugins.google.services)
-    // alias(libs.plugins.firebase.crashlytics)
 }
 
 // Load secrets from local.properties (never committed to VCS)
@@ -37,7 +34,6 @@ android {
         // Secrets injected as BuildConfig fields — no hardcoded keys in source
         buildConfigField("String", "NVIDIA_API_KEY", "\"${secret("NVIDIA_API_KEY")}\"")
         buildConfigField("String", "NVIDIA_BASE_URL", "\"${secret("NVIDIA_BASE_URL", "https://integrate.api.nvidia.com/")}\"")
-        buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"${secret("GOOGLE_WEB_CLIENT_ID")}\"")
     }
 
     buildTypes {
@@ -129,19 +125,6 @@ dependencies {
 
     // WorkManager
     implementation(libs.work.runtime.ktx)
-
-    // Firebase
-    implementation(platform(libs.firebase.bom))
-    implementation(libs.firebase.auth)
-    implementation(libs.firebase.firestore)
-    implementation(libs.firebase.analytics)
-    implementation(libs.firebase.crashlytics)
-    implementation(libs.firebase.storage)
-
-    // Google Sign-In (Credential Manager)
-    implementation(libs.credentials)
-    implementation(libs.credentials.play.services)
-    implementation(libs.googleid)
 
     // UI extras
     implementation(libs.lottie.compose)
